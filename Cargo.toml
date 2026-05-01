@@ -1,0 +1,25 @@
+[package]
+name = "slint-ritel-ml-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/ui",
+    "crates/domain",
+    "crates/use_cases",
+    "crates/repositories",
+    "crates/infra"
+]
+default-members = ["crates/ui"]
+
+[workspace.dependencies]
+slint="1.16.1"
+slint-build="1.16.1"
+tokio = { version = "1.52.1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+polars = "0.53.0"

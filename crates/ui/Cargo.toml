@@ -1,0 +1,13 @@
+[package]
+name = "ui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+domain = {path="../domain"}
+use_cases = { path = "../use_cases" }
+infra = { path = "../infra" }
+slint = { workspace = true }
+
+[build-dependencies]
+slint-build = { workspace = true }

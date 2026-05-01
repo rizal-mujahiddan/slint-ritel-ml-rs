@@ -1,0 +1,8 @@
+[package]
+name = "infra"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+use_cases = { path = "../use_cases" }
+polars = { workspace = true }
