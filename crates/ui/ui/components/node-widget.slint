@@ -1,0 +1,38 @@
+// components/node_widget.slint
+import { Colors } from "styles.slint";
+
+export component NodeWidget inherits Rectangle {
+    in property <NodeData> data;
+    in property <bool> selected;
+    callback clicked;
+    callback position-changed(/* new_x: length, new_y: length */);
+
+    width: 120px;
+    height: 60px;
+    x: data.x;
+    y: data.y;
+    background: selected ? Colors.node_selected : Colors.node_bg;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Colors.text_color;
+    
+    TouchArea {
+        clicked => { root.clicked(); }
+        moved => {
+            // Implement drag while pressed
+            if (pressed) {
+                root.x += event.delta-x;
+                root.y += event.delta-y;
+                root.position-changed(root.x, root.y);
+            }
+        }
+    }
+    
+    Text {
+        text: data.name;
+        color: Colors.text_color;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        font-size: 12px;
+    }
+}
