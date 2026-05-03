@@ -22,4 +22,21 @@ slint-build="1.16.1"
 tokio = { version = "1.52.1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-polars = "0.53.0"
+polars = { version = "0.53.0", features = ["csv", "json", "parquet", "lazy"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+anyhow = "1.0"
+linfa = "0.7"
+linfa-clustering = "0.7"
+linfa-logistic = "0.7"
+calamine = "0.24"
+candle-core = "0.8"
+candle-nn = "0.8"
+image = "0.25"
+native-dialog = "0.7"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+strip = true

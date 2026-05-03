@@ -1,15 +1,272 @@
-import { AboutSlint, VerticalBox } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, ScrollView } from "std-widgets.slint";
 
-export component MainWindow inherits Window {
-    preferred-height: 100%;
-    preferred-width: 100%;
+struct NodeData {
+    id: string,
+    name: string,
+    node_type: string,
+    x: length,
+    y: length,
+    selected: bool,
+    icon: string, // SVG path or symbol
+}
+
+global Theme {
+    in-out property <bool> is_dark: true;
+    out property <color> background: is_dark ? #1e1e2e : #f5f5f5;
+    out property <color> sidebar_bg: is_dark ? #181825 : #ffffff;
+    out property <color> text_color: is_dark ? #cdd6f4 : #313244;
+    out property <color> border_color: is_dark ? #313244 : #e6e6e6;
+    out property <color> node_bg: is_dark ? #313244 : #ffffff;
+}
+
+struct ConnectionData {
+    from_id: string,
+    to_id: string,
+    x1: length,
+    y1: length,
+    x2: length,
+    y2: length,
+    commands: string,
+}
+
+export component AppWindow inherits Window {
+    title: "Ritel Workflow Automation";
+    width: 1200px;
+    height: 800px;
+    background: Theme.background;
+
+    callback add_node(string);
+    callback run_workflow();
+    callback node_moved(string, length, length);
+    callback node_selected(string);
+    callback delete_node(string);
+    callback toggle_theme();
+    callback save_workflow();
+    callback load_workflow();
+
+    in property <[NodeData]> nodes: [
+        { id: "1", name: "Source CSV", node_type: "CsvInput", x: 50px, y: 50px, selected: false, icon: "📄" },
+        { id: "2", name: "Filter Data", node_type: "Filter", x: 250px, y: 150px, selected: false, icon: "🔍" },
+    ];
     
-    VerticalBox {
-        Text {
-            text: "Hello World!";
+    in property <[ConnectionData]> connections: [
+        { from_id: "1", to_id: "2" }
+    ];
+
+    in property <string> selected_node_id;
+    in property <string> logs: "System ready...";
+
+    HorizontalBox {
+        padding: 0;
+        spacing: 0;
+
+        // Left Sidebar: Palette
+        Rectangle {
+            width: 250px;
+            background: Theme.sidebar_bg;
+            Rectangle {
+                width: 1px;
+                height: 100%;
+                x: parent.width - 1px;
+                background: Theme.border_color;
+            }
+
+            VerticalBox {
+                padding: 20px;
+                alignment: start;
+                
+                HorizontalBox {
+                    Text {
+                        text: "Components";
+                        font-size: 18px;
+                        color: Theme.text_color;
+                        font-weight: 700;
+                    }
+                    Button {
+                        text: Theme.is_dark ? "🌙" : "☀️";
+                        clicked => { Theme.is_dark = !Theme.is_dark; root.toggle_theme(); }
+                    }
+                }
+                
+                Rectangle { height: 10px; }
+                
+                HorizontalBox {
+                    Button { text: "💾 Save"; clicked => { root.save_workflow() } }
+                    Button { text: "📂 Load"; clicked => { root.load_workflow() } }
+                }
+                
+                Rectangle { height: 10px; }
+                
+                Rectangle { height: 10px; }
+
+                Button { text: "CSV Input"; clicked => { root.add_node("CsvInput") } }
+                Button { text: "XLSX Input"; clicked => { root.add_node("XlsxInput") } }
+                Button { text: "JSON Input"; clicked => { root.add_node("JsonInput") } }
+                Button { text: "SQLite Input"; clicked => { root.add_node("SqliteInput") } }
+                
+                Rectangle { height: 10px; }
+                Text { text: "Transformation"; color: #a6adc8; font-size: 14px; }
+                Button { text: "Filter"; clicked => { root.add_node("Filter") } }
+                Button { text: "Select"; clicked => { root.add_node("Select") } }
+                
+                Rectangle { height: 10px; }
+                Text { text: "Machine Learning"; color: #a6adc8; font-size: 14px; }
+                Button { text: "K-Means Clustering"; clicked => { root.add_node("KMeans") } }
+                Button { text: "Logistic Regression"; clicked => { root.add_node("LogisticRegression") } }
+
+                Rectangle { height: 10px; }
+                Text { text: "Output"; color: #a6adc8; font-size: 14px; }
+                Button { text: "CSV Output"; clicked => { root.add_node("CsvOutput") } }
+                Button { text: "Table Display"; clicked => { root.add_node("TableDisplay") } }
+                
+                Rectangle { height: 20px; }
+                
+                Button { 
+                    text: "RUN WORKFLOW"; 
+                    primary: true;
+                    clicked => { root.run_workflow() }
+                }
+            }
         }
-        AboutSlint {
-            preferred-height: 150px;
+
+        // Center: Canvas
+        Rectangle {
+            clip: true;
+            background: #1e1e2e;
+
+            // Grid background
+            for i in 40 : Rectangle {
+                x: i * 40px;
+                y: 0;
+                width: 1px;
+                height: 100%;
+                background: #313244;
+                opacity: 0.2;
+            }
+            for i in 40 : Rectangle {
+                x: 0;
+                y: i * 40px;
+                width: 100%;
+                height: 1px;
+                background: #313244;
+                opacity: 0.2;
+            }
+
+            // Connection Lines
+            for conn in connections : Rectangle {
+                // Find nodes
+                // In Slint, we can't easily "find" by ID in a loop without a model
+                // So we'll assume the connections model has coordinates pre-calculated or mapped
+                // For this MVP, let's use a trick: we'll render lines if the IDs match
+                // Actually, it's better to pass lines as a separate property [ {x1, y1, x2, y2} ]
+            }
+
+            // Simple line implementation (horizontal/vertical segments)
+            for conn in connections : Path {
+                viewbox-width: 1200;
+                viewbox-height: 800;
+                commands: conn.commands;
+                stroke: #89b4fa;
+                stroke-width: 2px;
+            }
+
+            for node in nodes : Rectangle {
+                x: node.x;
+                y: node.y;
+                width: 160px;
+                height: 80px;
+                background: node.selected ? #45475a : Theme.node_bg;
+                border-radius: 8px;
+                border-width: node.selected ? 2px : 1px;
+                border-color: node.selected ? #89b4fa : Theme.border_color;
+                
+                drop-shadow-blur: 10px;
+                drop-shadow-color: rgba(0, 0, 0, 0.3);
+
+                HorizontalBox {
+                    padding: 10px;
+                    alignment: start;
+                    Text {
+                        text: node.icon;
+                        font-size: 24px;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: node.name;
+                        color: Theme.text_color;
+                        font-weight: 500;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        wrap: word-wrap;
+                    }
+                }
+
+                TouchArea {
+                    clicked => { root.node_selected(node.id) }
+                    moved => {
+                        if (self.pressed) {
+                            root.node_moved(node.id, node.x + self.mouse-x - self.pressed-x, node.y + self.mouse-y - self.pressed-y);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Right Sidebar: Properties
+        Rectangle {
+            width: 250px;
+            background: #181825;
+            Rectangle {
+                width: 1px;
+                height: 100%;
+                x: 0;
+                background: Theme.border_color;
+            }
+
+            VerticalBox {
+                padding: 20px;
+                alignment: start;
+                Text {
+                    text: "Properties";
+                    font-size: 18px;
+                    color: #cdd6f4;
+                    font-weight: 700;
+                }
+                
+                if (selected_node_id != ""): VerticalBox {
+                    Text { text: "ID: " + selected_node_id; color: #a6adc8; }
+                    Button {
+                        text: "🗑️ Delete Node";
+                        clicked => { root.delete_node(selected_node_id) }
+                    }
+                }
+            }
+        }
+    }
+
+    // Bottom Logs
+    Rectangle {
+        y: parent.height - 150px;
+        height: 150px;
+        width: 100%;
+        background: rgba(24, 24, 37, 0.95);
+        Rectangle {
+            width: 100%;
+            height: 1px;
+            y: 0;
+            background: #313244;
+        }
+        
+        ScrollView {
+            VerticalBox {
+                padding: 15px;
+                Text {
+                    text: root.logs;
+                    color: #a6adc8;
+                    font-family: "monospace";
+                    wrap: word-wrap;
+                }
+            }
         }
     }
 }

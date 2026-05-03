@@ -1,49 +1,70 @@
-use polars::prelude::*;
-use use_cases::ports::{DataProcessor, ModelRepository};
+use domain::Workflow;
+use rusqlite::{params, Connection};
+use anyhow::Result;
+use uuid::Uuid;
 
-pub struct PolarsDataProcessor;
+use repositories::WorkflowRepository;
 
-impl DataProcessor for PolarsDataProcessor {
-    fn process_data(&self, _data: &str) -> Result<String, String> {
-        let df = df!(
-            "feature1" => &[1, 2, 3],
-            "feature2" => &[4, 5, 6],
-        )
-        .map_err(|e| e.to_string())?;
+pub struct SqliteRepository {
+    conn: Connection,
+}
 
-        let series = df
-            .column("feature1")
-            .map_err(|e| e.to_string())?
-            .as_series()
-            .ok_or("Column 'feature1' is not a numeric series")?;
+impl WorkflowRepository for SqliteRepository {
+    fn save(&self, workflow: &Workflow) -> Result<()> {
+        self.save_workflow(workflow)
+    }
 
-        let sum = series.sum::<i32>().map_err(|e| e.to_string())?;
+    fn load(&self, id: Uuid) -> Result<Workflow> {
+        self.load_workflow(id)
+    }
 
-        Ok(format!("Prediction result: {}", sum))
+    fn list(&self) -> Result<Vec<(Uuid, String)>> {
+        self.list_workflows()
     }
 }
 
-pub struct InMemoryModelRepo {
-    models: std::sync::RwLock<std::collections::HashMap<String, Vec<u8>>>,
-}
-
-impl InMemoryModelRepo {
-    pub fn new() -> Self {
-        Self {
-            models: std::sync::RwLock::new(std::collections::HashMap::new()),
-        }
+impl SqliteRepository {
+    pub fn new(path: &str) -> Result<Self> {
+        let conn = Connection::open(path)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS workflows (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                data TEXT NOT NULL
+            )",
+            [],
+        )?;
+        Ok(Self { conn })
     }
-}
 
-impl ModelRepository for InMemoryModelRepo {
-    fn save_model(&self, name: &str, model_data: Vec<u8>) -> Result<(), String> {
-        let mut map = self.models.write().map_err(|_| "Lock poisoned")?;
-        map.insert(name.to_string(), model_data);
+    pub fn save_workflow(&self, workflow: &Workflow) -> Result<()> {
+        let data = serde_json::to_string(workflow)?;
+        self.conn.execute(
+            "INSERT OR REPLACE INTO workflows (id, name, data) VALUES (?1, ?2, ?3)",
+            params![workflow.id.to_string(), workflow.name, data],
+        )?;
         Ok(())
     }
 
-    fn load_model(&self, name: &str) -> Result<Option<Vec<u8>>, String> {
-        let map = self.models.read().map_err(|_| "Lock poisoned")?;
-        Ok(map.get(name).cloned())
+    pub fn load_workflow(&self, id: Uuid) -> Result<Workflow> {
+        let mut stmt = self.conn.prepare("SELECT data FROM workflows WHERE id = ?1")?;
+        let data: String = stmt.query_row(params![id.to_string()], |row| row.get(0))?;
+        let workflow: Workflow = serde_json::from_str(&data)?;
+        Ok(workflow)
+    }
+
+    pub fn list_workflows(&self) -> Result<Vec<(Uuid, String)>> {
+        let mut stmt = self.conn.prepare("SELECT id, name FROM workflows")?;
+        let rows = stmt.query_map([], |row| {
+            let id_str: String = row.get(0)?;
+            let name: String = row.get(1)?;
+            Ok((Uuid::parse_str(&id_str).unwrap_or_default(), name))
+        })?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
     }
 }

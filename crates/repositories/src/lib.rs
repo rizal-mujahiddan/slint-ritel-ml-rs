@@ -1,14 +1,9 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use domain::Workflow;
+use uuid::Uuid;
+use anyhow::Result;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub trait WorkflowRepository {
+    fn save(&self, workflow: &Workflow) -> Result<()>;
+    fn load(&self, id: Uuid) -> Result<Workflow>;
+    fn list(&self) -> Result<Vec<(Uuid, String)>>;
 }

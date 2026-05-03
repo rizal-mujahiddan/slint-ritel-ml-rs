@@ -4,5 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+domain = { path = "../domain" }
+repositories = { path = "../repositories" }
 use_cases = { path = "../use_cases" }
-polars = { workspace = true }
+rusqlite = { version = "0.31", features = ["bundled"] }
+serde_json = { workspace = true }
+anyhow = "1.0"
+uuid = { workspace = true }

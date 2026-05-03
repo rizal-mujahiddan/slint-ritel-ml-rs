@@ -5,3 +5,13 @@ edition = "2024"
 
 [dependencies]
 domain = { path = "../domain"}
+polars = { workspace = true }
+tokio = { workspace = true }
+anyhow = "1.0"
+serde = { workspace = true }
+linfa = { workspace = true }
+linfa-clustering = { workspace = true }
+linfa-logistic = { workspace = true }
+calamine = { workspace = true }
+ndarray = "0.15"
+uuid = { workspace = true }
